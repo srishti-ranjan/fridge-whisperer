@@ -1,7 +1,13 @@
 from fastapi import FastAPI
+from pydantic import BaseModel
 
 app = FastAPI()
 
-@app.get("/")
-def read_root():
-    return {"message": "Hello from SmartSuggest!"}
+class SuggestionRequest(BaseModel):
+    ingredients: list[str]
+
+@app.post("/suggest")
+def get_suggestions(req: SuggestionRequest):
+    # Dummy logic for demo
+    return {"suggestions": ["Omelette", "Pasta", "Salad"]}
+
