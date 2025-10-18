@@ -8,3 +8,10 @@ Microservices Include
 3. **SmartSuggest** uses data from PantryPal and UseLogix to drive shopping and recipe recommendations, enhancing user value.​
 4. **PingMe** ensures operational responsiveness, keeping users informed about their inventory status without manual checks.​
 5. **TasteTune** holds and applies the user's dietary information and taste profiles, ensuring personal relevance in all outputs.
+
+Tech Stack
+1. Python (FastAPI/Flask)
+2. PostgreSQL/MySQL (PantryPal)
+3. MongoDB (SmartSuggest)
+4. Docker, Kubernetes, Minikube
+5. REST API (HTTP)
