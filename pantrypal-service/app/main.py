@@ -1,53 +1,49 @@
-from fastapi import FastAPI, HTTPException
-from pydantic import BaseModel
+from fastapi import FastAPI, HTTPException, Depends
+from sqlalchemy.orm import Session
+from app import models, schemas, crud, database  # adjust import paths if necessary
 
 app = FastAPI()
 
-class Item(BaseModel):
-    name: str
-    quantity: int
+# Create tables if they do not exist
+models.Base.metadata.create_all(bind=database.engine)
 
-# In-memory "database"
-items = [
-    {"id": 1, "name": "Milk", "quantity": 2},
-    {"id": 2, "name": "Eggs", "quantity": 12}
-]
+# Dependency for DB session
+def get_db():
+    db = database.SessionLocal()
+    try:
+        yield db
+    finally:
+        db.close()
 
 @app.get("/")
 def read_root():
     return {"message": "Hello from PantryPal!"}
 
-@app.get("/items")
-def get_items():
-    return {"items": items}
+@app.post("/items", response_model=schemas.PantryItem)
+def create_pantry_item(item: schemas.PantryItemCreate, db: Session = Depends(get_db)):
+    return crud.create_item(db, item)
 
-@app.get("/items/{item_id}")
-def get_item(item_id: int):
-    for item in items:
-        if item["id"] == item_id:
-            return item
-    raise HTTPException(status_code=404, detail="Item not found")
+@app.get("/items", response_model=list[schemas.PantryItem])
+def read_pantry_items(skip: int = 0, limit: int = 100, db: Session = Depends(get_db)):
+    return crud.get_items(db, skip, limit)
 
-@app.post("/items")
-def add_item(item: Item):
-    new_id = max(i["id"] for i in items) + 1 if items else 1
-    obj = {"id": new_id, "name": item.name, "quantity": item.quantity}
-    items.append(obj)
-    return obj
+@app.get("/items/{item_id}", response_model=schemas.PantryItem)
+def read_pantry_item(item_id: int, db: Session = Depends(get_db)):
+    item = crud.get_item(db, item_id)
+    if not item:
+        raise HTTPException(status_code=404, detail="Item not found")
+    return item
 
-@app.put("/items/{item_id}")
-def update_item(item_id: int, item: Item):
-    for obj in items:
-        if obj["id"] == item_id:
-            obj["name"] = item.name
-            obj["quantity"] = item.quantity
-            return obj
-    raise HTTPException(status_code=404, detail="Item not found")
+@app.put("/items/{item_id}", response_model=schemas.PantryItem)
+def update_pantry_item(item_id: int, update: schemas.PantryItemUpdate, db: Session = Depends(get_db)):
+    item = crud.update_item(db, item_id, update)
+    if not item:
+        raise HTTPException(status_code=404, detail="Item not found")
+    return item
 
-@app.delete("/items/{item_id}")
-def delete_item(item_id: int):
-    for idx, obj in enumerate(items):
-        if obj["id"] == item_id:
-            deleted = items.pop(idx)
-            return {"deleted": deleted}
-    raise HTTPException(status_code=404, detail="Item not found")
+@app.delete("/items/{item_id}", status_code=204)
+def delete_pantry_item(item_id: int, db: Session = Depends(get_db)):
+    success = crud.delete_item(db, item_id)
+    if not success:
+        raise HTTPException(status_code=404, detail="Item not found")
+    return None
