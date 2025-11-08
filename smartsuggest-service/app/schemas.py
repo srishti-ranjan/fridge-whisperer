@@ -1,5 +1,6 @@
 from pydantic import BaseModel, Field
 from typing import Optional
+from datetime import datetime
 
 class SuggestionBase(BaseModel):
     input_items: str
@@ -8,6 +9,9 @@ class SuggestionBase(BaseModel):
 
 class SuggestionCreate(SuggestionBase):
     pass
+class SuggestionUpdate(SuggestionBase):
+    pass
+
 class Suggestion(SuggestionBase):
     id: int
     created_at: str
