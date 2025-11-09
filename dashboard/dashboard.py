@@ -2,12 +2,14 @@ import streamlit as st
 import requests
 import pandas as pd
 from datetime import datetime
+import os
 
 st.set_page_config(page_title="Fridge-Whisperer Dashboard", layout="wide", page_icon="🧊")
 
-# EC2 Public IP endpoints
-PANTRYPAL_URL = "http://3.110.135.117:8000"
-SMARTSUGGEST_URL = "http://13.235.76.165:8001"
+# Use environment variables for service URLs (Docker-friendly)
+# Falls back to EC2 IPs if not set
+PANTRYPAL_URL = os.getenv("PANTRYPAL_URL", "http://localhost:8000")
+SMARTSUGGEST_URL = os.getenv("SMARTSUGGEST_URL", "http://localhost:8001")
 
 # Sidebar for controls
 with st.sidebar:
@@ -41,7 +43,7 @@ with st.sidebar:
                     st.warning(f"Not found: {r.text}")
             elif action == "Delete" and item_id:
                 r = requests.delete(f"{PANTRYPAL_URL}/items/{item_id}")
-                if r.status_code == 200:
+                if r.status_code in (200, 204):
                     st.success("Deleted item.")
                 else:
                     st.error(f"Delete failed: {r.text}")
