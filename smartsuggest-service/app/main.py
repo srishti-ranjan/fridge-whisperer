@@ -2,6 +2,7 @@ from fastapi import FastAPI, Depends, HTTPException
 from sqlalchemy.orm import Session
 from .database import SessionLocal, engine
 from . import models, schemas, crud
+from pydantic import BaseModel
 
 models.Base.metadata.create_all(bind=engine)
 app = FastAPI()
@@ -12,6 +13,10 @@ def get_db():
         yield db
     finally:
         db.close()
+
+# Schema for query endpoint
+class QueryRequest(BaseModel):
+    input_items: str
 
 @app.post("/suggestions/", response_model=schemas.Suggestion)
 def create_suggestion(suggestion: schemas.SuggestionCreate, db: Session = Depends(get_db)):
@@ -41,4 +46,24 @@ def delete_suggestion(suggestion_id: int, db: Session = Depends(get_db)):
     if not success:
         raise HTTPException(status_code=404, detail="Suggestion not found")
     return None
+
+@app.post("/query")
+def query_suggestions(request: QueryRequest, db: Session = Depends(get_db)):
+    """Query suggestions by input items (exact match)"""
+    input_items = request.input_items.strip()
+    
+    # Query database for matching suggestions
+    suggestion = db.query(models.Suggestion).filter(
+        models.Suggestion.input_items == input_items
+    ).first()
+    
+    if suggestion:
+        return {
+            "input_items": suggestion.input_items,
+            "suggested_items": suggestion.suggested_items,
+            "score": suggestion.score
+        }
+    
+    # No match found
+    raise HTTPException(status_code=404, detail="No matching recipe found")
 

@@ -31,6 +31,12 @@ services:
     volumes:
       - ./pantrypal-service:/app
     command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
 
   smartsuggest:
     build:
@@ -46,6 +52,12 @@ services:
     volumes:
       - ./smartsuggest-service:/app
     command: uvicorn app.main:app --host 0.0.0.0 --port 8001 --reload
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8001/suggestions/"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
 
   dashboard:
     build:
@@ -54,11 +66,14 @@ services:
     ports:
       - "8501:8501"
     depends_on:
-      - pantrypal
-      - smartsuggest
+      pantrypal:
+        condition: service_healthy
+      smartsuggest:
+        condition: service_healthy
     environment:
       - PANTRYPAL_URL=http://pantrypal:8000
       - SMARTSUGGEST_URL=http://smartsuggest:8001
+    restart: on-failure
 
 volumes:
   postgres_data:
